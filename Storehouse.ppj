@@ -1,0 +1,45 @@
+<?xml version='1.0'?><!-- Game is either sse, tesv, or fo4 -->
+<PapyrusProject xmlns="PapyrusProject.xsd" 
+    Flags="TESV_Papyrus_Flags.flg" 
+    Game="sse" 
+    Output="Scripts" 
+    Optimize="false" 
+    Zip="true"
+    Final="false">
+    <Variables>
+        <Variable Name="ModName" Value="Storehouse" />
+        <Variable Name="Drive" Value="d:" />
+        <!-- <Variable Name="modpath" Value="c:\wabbajack\streamlinedskyrim\mods" /> -->
+        <!-- <Variable Name="gamepath" Value="C:\Steam\steamapps\common\Skyrim Special Edition" /> -->
+        <Variable Name="modpath" Value="\wabbajack\arisen\mods" />
+        <Variable Name="gamepath" Value="\wabbajack\arisen\stock game" />
+    </Variables>
+    <Imports>
+        <Import>.\Source\Scripts</Import>
+        <Import>@drive@modpath\skyui\scripts\source</Import>
+        <Import>@drive@modpath\skse scripts\scripts\source</Import>
+        <Import>@drive@modpath\PapyrusUtil SE - Modders Scripting Utility Functions\Scripts\Source</Import>
+        <Import>@drive@modpath\Mfg Fix\source\scripts</Import>
+        <Import>@drive@modpath\FileAccess Interface for Skyrim SE Scripts - FISSES\scripts\source</Import>
+        <Import>@drive@modpath\ConsoleUtilSSE\scripts\source</Import>
+        <Import>@drive@modpath\powerofthree's Papyrus Extender\source\scripts</Import>
+        <Import>@drive@gamepath\Data\source\scripts</Import>
+        <Import>@drive@modpath\JContainers SE\scripts\source</Import>
+    </Imports>
+    <Folders>
+        <Folder>.\Source\Scripts</Folder>
+    </Folders>
+    <ZipFiles Output="Build">
+        <ZipFile Name="@ModName" RootDir="." Compression="deflate">
+            <Include>*.esp</Include>
+            <Include NoRecurse="true">*.bsa</Include>
+            <Match In="source\scripts">*.psc</Match>
+            <Match In="scripts">*.pex</Match>
+            <!-- <Match In="interface">*.*</Match> -->
+            <!-- <Match In="meshes">*.*</Match> -->
+            <!-- <Match In="textures">*.*</Match>
+            <Match In="SKSE">*.*</Match>
+            <Match In="seq">*.*</Match> -->
+        </ZipFile>
+    </ZipFiles>
+</PapyrusProject>
