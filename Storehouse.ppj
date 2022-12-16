@@ -8,7 +8,7 @@
     Final="false">
     <Variables>
         <Variable Name="ModName" Value="Storehouse" />
-        <Variable Name="Drive" Value="d:" />
+        <Variable Name="drive" Value="f:" />
         <!-- <Variable Name="modpath" Value="c:\wabbajack\streamlinedskyrim\mods" /> -->
         <!-- <Variable Name="gamepath" Value="C:\Steam\steamapps\common\Skyrim Special Edition" /> -->
         <Variable Name="modpath" Value="\wabbajack\arisen\mods" />
