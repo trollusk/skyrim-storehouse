@@ -5,6 +5,8 @@ Actor property player auto
 Furniture property RBCModFire1 auto
 Furniture property RBCModFire2 auto
 ObjectReference Property BottomlessBox  Auto  
+FormList Property SBMEstusFlaskFormList  Auto   ; Soulslike Bonfire Menu list of "estus flask" potions
+ObjectReference property DefaultStorehouseContainer auto    ; alternative to SBM container, not currently used
 MiscObject property lockpickBase auto
 
 int TYPE_POTION = 46
@@ -66,6 +68,7 @@ Function InitStorehouse()
     AddInventoryEventFilter(MagickaPotionFormList)
     AddInventoryEventFilter(StaminaPotionFormList)
     CountItemsInInventory()
+    debug.Notification("Finished initialising storehouse.")
 EndFunction
 
 
@@ -75,20 +78,24 @@ Function AddPotionsToFormLists()
     while index < potionList.Length
         Potion pot = potionList[index] as Potion
         MagicEffect[] mgefs = pot.GetMagicEffects()
-        if !pot.IsFood()
-            int midx = 0
-            while midx < mgefs.Length
-                if mgefs[midx].HasKeyword(healthKeyword)
-                    HealthPotionFormList.AddForm(pot)
-                endif
-                if mgefs[midx].HasKeyword(magickaKeyword)
-                    MagickaPotionFormList.AddForm(pot)
-                endif
-                if mgefs[midx].HasKeyword(staminaKeyword)
-                    StaminaPotionFormList.AddForm(pot)
-                endif
-                midx += 1
-            endwhile
+        if !pot.IsFood() || mcm.includeFood
+            if SBMEstusFlaskFormList.Find(pot) >= 0
+                ; it's an Estus flask - ignore
+            else
+                int midx = 0
+                while midx < mgefs.Length
+                    if mgefs[midx].HasKeyword(healthKeyword)
+                        HealthPotionFormList.AddForm(pot)
+                    endif
+                    if mgefs[midx].HasKeyword(magickaKeyword)
+                        MagickaPotionFormList.AddForm(pot)
+                    endif
+                    if mgefs[midx].HasKeyword(staminaKeyword)
+                        StaminaPotionFormList.AddForm(pot)
+                    endif
+                    midx += 1
+                endwhile
+            endif
         endif
         index += 1
     endwhile
@@ -106,7 +113,8 @@ EndFunction
 
 
 Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference source)
-    string itemName = "items"
+    string itemName = "item"
+    string itemNamePlural = "items"
     int toStore = 0
 
 	if PO3_SKSEFunctions.IsQuestItem(itemref)
@@ -114,39 +122,50 @@ Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference
 	endif
 
     if mcm.lockpickCap > 0 && base == lockpickBase
-        itemName = "lockpicks"
+        itemName = "lockpick"
+        itemNamePlural = "lockpicks"
         lockpickCount = player.GetItemCount(lockpickBase)
         toStore = Max(0, lockpickCount - mcm.lockpickCap)
-        debug.Notification("Acquired " + count + " lockpicks (count now " + lockpickCount + ", cap " + mcm.lockpickCap + ")")
+        consoleutil.PrintMessage("Acquired " + count + " lockpicks (count now " + lockpickCount + ", cap " + mcm.lockpickCap + ")")
     elseif mcm.poisonCap > 0 && (base as Potion).IsPoison()
-        itemName = "poisons"
+        itemName = "poison"
+        itemNamePlural = "poisons"
         poisonCount = player.GetItemCount(poisonKeyword)
         toStore = Max(0, poisonCount - mcm.poisonCap)
-        debug.Notification("Acquired " + count + " poisons (count now " + poisonCount + ", cap " + mcm.poisonCap + ")")
+        consoleutil.PrintMessage("Acquired " + count + " poisons (count now " + poisonCount + ", cap " + mcm.poisonCap + ")")
     elseif mcm.arrowCap > 0 && (base as Ammo)
-        itemName = "arrows"
+        if (base as Ammo).IsBolt()
+            itemName = "bolt"
+            itemNamePlural = "bolts"
+        else
+            itemName = "arrow"
+            itemNamePlural = "arrows"
+            endif
         ammoCount = player.GetItemCount(ammoKeyword)
         toStore = Max(0, ammoCount - mcm.arrowCap)
-        debug.Notification("Acquired " + count + " arrows (prior count " + ammoCount + ", cap " + mcm.arrowCap + ")")
+        consoleutil.PrintMessage("Acquired " + count + " arrows (prior count " + ammoCount + ", cap " + mcm.arrowCap + ")")
     elseif mcm.healthPotionCap > 0 && IsHealthPotion(base)
-        itemName = "health potions"
+        itemName = "health potion"
+        itemNamePlural = "health potions"
         healthPotionCount = player.GetItemCount(HealthPotionFormList)
         toStore = Max(0, healthPotionCount - mcm.healthPotionCap)
-        debug.Notification("Acquired " + count + " health potions (count now " + healthPotionCount + ", cap " + mcm.healthPotionCap + ")")
+        consoleutil.PrintMessage("Acquired " + count + " health potions (count now " + healthPotionCount + ", cap " + mcm.healthPotionCap + ")")
     elseif mcm.magickaPotionCap > 0 && IsMagickaPotion(base)
-        itemName = "magicka potions"
+        itemName = "magicka potion"
+        itemNamePlural = "magicka potions"
         magickaPotionCount = player.GetItemCount(MagickaPotionFormList)
         toStore = Max(0, magickaPotionCount - mcm.magickaPotionCap)
-        debug.Notification("Acquired " + count + " magicka potions (count now " + magickaPotionCount + ", cap " + mcm.magickaPotionCap + ")")
+        consoleutil.PrintMessage("Acquired " + count + " magicka potions (count now " + magickaPotionCount + ", cap " + mcm.magickaPotionCap + ")")
     elseif mcm.staminaPotionCap > 0 && IsStaminaPotion(base)
         staminaPotionCount = player.GetItemCount(StaminaPotionFormList)
         toStore = Max(0, staminaPotionCount - mcm.staminaPotionCap)
-        itemName = "stamina potions"
-        debug.Notification("Acquired " + count + " stamina potions (count now " + staminaPotionCount + ", cap " + mcm.staminaPotionCap + ")")
+        itemName = "stamina potion"
+        itemNamePlural = "stamina potions"
+        consoleutil.PrintMessage("Acquired " + count + " stamina potions (count now " + staminaPotionCount + ", cap " + mcm.staminaPotionCap + ")")
     endif
 
     if toStore > 0
-        debug.Notification("Sending " + Min(toStore, count) + " excess " + itemName + " to storehouse...")
+        debug.Notification("Sent " + Min(toStore, count) + " " + strif(Min(toStore, count)==1, itemName, itemNamePlural) + " to storehouse...")
         player.RemoveItem(base, Min(toStore, count), false, BottomlessBox)
     endif
 EndEvent
@@ -155,22 +174,22 @@ EndEvent
 ; ; TODO don't really need this
 ; Event OnItemRemoved(Form base, int count, ObjectReference itemref, ObjectReference dest)
 ;     if mcm.lockpickCap > 0 && base == lockpickBase
-;         debug.Notification("Lost " + count + " lockpicks (prior count " + lockpickCount + ", cap " + mcm.lockpickCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " lockpicks (prior count " + lockpickCount + ", cap " + mcm.lockpickCap + ")")
 ;         lockpickCount = player.GetItemCount(lockpickBase)
 ;     elseif mcm.arrowCap > 0 && (base as Ammo)
-;         debug.Notification("Lost " + count + " ammo (prior count " + ammoCount + ", cap " + mcm.arrowCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " ammo (prior count " + ammoCount + ", cap " + mcm.arrowCap + ")")
 ;         ammoCount = player.GetItemCount(ammoKeyword)
 ;     elseif mcm.poisonCap > 0 && (base as Potion).IsPoison()
-;         debug.Notification("Lost " + count + " poisons (prior count " + poisonCount + ", cap " + mcm.poisonCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " poisons (prior count " + poisonCount + ", cap " + mcm.poisonCap + ")")
 ;         poisonCount = player.GetItemCount(poisonKeyword)
 ;     elseif mcm.healthPotionCap > 0 && IsHealthPotion(base)
-;         debug.Notification("Lost " + count + " health potions (prior count " + healthPotionCount + ", cap " + mcm.healthPotionCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " health potions (prior count " + healthPotionCount + ", cap " + mcm.healthPotionCap + ")")
 ;         healthPotionCount = player.GetItemCount(HealthPotionFormList)
 ;     elseif mcm.magickaPotionCap > 0 && IsMagickaPotion(base)
-;         debug.Notification("Lost " + count + " magicka potions (prior count " + magickaPotionCount + ", cap " + mcm.magickaPotionCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " magicka potions (prior count " + magickaPotionCount + ", cap " + mcm.magickaPotionCap + ")")
 ;         magickaPotionCount = player.GetItemCount(MagickaPotionFormList)
 ;     elseif mcm.staminaPotionCap > 0 && IsStaminaPotion(base)
-;         debug.Notification("Lost " + count + " stamina potions (prior count " + staminaPotionCount + ", cap " + mcm.staminaPotionCap + ")")
+;         consoleutil.PrintMessage("Lost " + count + " stamina potions (prior count " + staminaPotionCount + ", cap " + mcm.staminaPotionCap + ")")
 ;         staminaPotionCount = player.GetItemCount(StaminaPotionFormList)
 ;     endif
 ; EndEvent
@@ -178,21 +197,21 @@ EndEvent
 
 Event OnSit(ObjectReference furn)
 	Form furnBase = furn.GetBaseObject()
-	;debug.Notification("(RBC) Sitting on base =" + furnBase + "  " + furnBase.GetFormID() + "  " + furnBase.GetName())
+	;consoleutil.PrintMessage("(RBC) Sitting on base =" + furnBase + "  " + furnBase.GetFormID() + "  " + furnBase.GetName())
 		
 	if ((furnBase == RBCModFire1) || (furnBase == RBCModFire2))
-		;debug.Notification("Sitting at campfire! (Rest By Campfire.esp)")
+		;consoleutil.PrintMessage("Sitting at campfire! (Rest By Campfire.esp)")
 		SyncBottomlessBox()
 		return
 	endif
 	
-	;debug.Notification("(RBC) No campfire detected")
+	;consoleutil.PrintMessage("(RBC) No campfire detected")
 EndEvent
 
 
 function SyncBottomlessBox()
     int toMove = 0
-    debug.Notification("Syncing bottomless box!")
+    consoleutil.PrintMessage("Syncing with storehouse")
     ; todo
     ; - count number of lockpicks in player inventory
     ; - if lockpickCount < lockpickCap
@@ -205,17 +224,18 @@ function SyncBottomlessBox()
     int staminaPotionStored = BottomlessBox.GetItemCount(StaminaPotionFormList)
     int ammoStored = BottomlessBox.GetItemCount(ammoKeyword)
     int poisonStored = BottomlessBox.GetItemCount(poisonKeyword)
-    debug.Notification("(Box/player) Lockpicks " + lockpickStored + "/" + lockpickCount + ", health potions " + healthPotionStored + "/" + healthPotionCount + ", magicka " + magickaPotionStored + "/" + magickaPotionCount)
-    debug.Notification("(Box/player) Stamina " + staminaPotionStored + "/" + staminaPotionCount + ", poisons " + poisonStored + "/" + poisonCount + ", ammo " + ammoStored + "/" + ammoCount)
+    consoleutil.PrintMessage("(Box/player) Lockpicks " + lockpickStored + "/" + lockpickCount + ", health potions " + healthPotionStored + "/" + healthPotionCount + ", magicka " + magickaPotionStored + "/" + magickaPotionCount)
+    consoleutil.PrintMessage("(Box/player) Stamina " + staminaPotionStored + "/" + staminaPotionCount + ", poisons " + poisonStored + "/" + poisonCount + ", ammo " + ammoStored + "/" + ammoCount)
 
     if mcm.lockpickCap > 0 
         if lockpickCount > mcm.lockpickCap
-            player.RemoveItem(lockpickBase, lockpickCount - mcm.lockpickCap, false, BottomlessBox)
-            debug.Notification("Sent " + (lockpickCount - mcm.lockpickCap) + " lockpicks to storehouse.")
+            toMove = lockpickCount - mcm.lockpickCap
+            player.RemoveItem(lockpickBase, toMove, false, BottomlessBox)
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"lockpick", "lockpicks") + " to the storehouse.")
         elseif lockpickCount < mcm.lockpickCap && lockpickStored > 0
             toMove = Min(lockpickStored, mcm.lockpickCap - lockpickCount)
             BottomlessBox.RemoveItem(lockpickBase, toMove, false, player)
-            debug.Notification("Fetched " + toMove + " lockpicks from storehouse.")
+            debug.Notification("Fetched " + toMove + " " + strif(toMove==1,"lockpick", "lockpicks") + " from the storehouse.")
             lockpickCount -= toMove
         endif
     endif
@@ -233,7 +253,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Sent " + toMove + " poisons to storehouse.")
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"poison", "poisons") + " to the storehouse.")
         elseif poisonCount < mcm.poisonCap && poisonStored > 0
             toMove = Min(poisonStored, mcm.poisonCap - poisonCount)
             int index = 0
@@ -247,7 +267,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Fetched " + (toMoveAim - toMove) + " poisons from storehouse.")
+            debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"poison", "poisons") + " from the storehouse.")
         endif
     endif
 
@@ -268,7 +288,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Sent " + toMove + " health potions to storehouse.")
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"health potion", "health potions") + " to the storehouse.")
         elseif healthPotionCount < mcm.healthPotionCap && healthPotionStored > 0
             toMove = Min(healthPotionStored, mcm.healthPotionCap - healthPotionCount)
             int index = 0
@@ -282,7 +302,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Fetched " + (toMoveAim - toMove) + " health potions from storehouse.")
+            debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"health potion", "health potions") + " from the storehouse.")
         endif
     endif
 
@@ -299,7 +319,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Sent " + toMove + " magicka potions to storehouse.")
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"magicka potion", "magicka potions") + " to the storehouse.")
         elseif magickaPotionCount < mcm.magickaPotionCap && magickaPotionStored > 0
             toMove = Min(magickaPotionStored, mcm.magickaPotionCap - magickaPotionCount)
             int index = 0
@@ -313,7 +333,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Fetched " + (toMoveAim - toMove) + " magicka potions from storehouse.")
+            debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"magicka potion", "magicka potions") + " from the storehouse.")
         endif
     endif
 
@@ -330,7 +350,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Sent " + toMove + " stamina potions to storehouse.")
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"stamina potion", "stamina potions") + " to the storehouse.")
         elseif staminaPotionCount < mcm.staminaPotionCap && staminaPotionStored > 0
             toMove = Min(staminaPotionStored, mcm.staminaPotionCap - staminaPotionCount)
             int index = 0
@@ -344,7 +364,7 @@ function SyncBottomlessBox()
                 endif
                 index += 1
             endwhile
-            debug.Notification("Fetched " + (toMoveAim - toMove) + " stamina potions from storehouse.")
+            debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"stamina potion", "stamina potions") + " from the storehouse.")
         endif
     endif
 endfunction
@@ -391,7 +411,7 @@ Function SyncAmmo(int ammoStored)
             player.RemoveItem(equippedAmmo, Min(count, toMove), false, BottomlessBox)
             toMove -= Min(count, toMove)
         endif
-        debug.Notification("Sent " + (toMoveAim - toMove) + " arrows and bolts to storehouse.")
+        debug.Notification("Sent " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"arrow/bolt", "arrows/bolts") + " to the storehouse.")
     elseif ammoCount < mcm.arrowCap && ammoStored > 0
         toMove = Min(ammoStored, mcm.arrowCap - ammoCount)
         toMoveAim = toMove
@@ -426,7 +446,7 @@ Function SyncAmmo(int ammoStored)
             endif
             index += 1
         endwhile
-        debug.Notification("Fetched " + (toMoveAim - toMove) + " arrows and bolts from storehouse.")
+        debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"arrow/bolt", "arrows/bolts") + " from the storehouse.")
     endif
 EndFunction
 
@@ -462,4 +482,13 @@ int Function Max(int a, int b)
         return b 
     endif
 EndFunction
+
+
+string function strif(bool test, string trueStr, string falseStr)
+    if test
+        return trueStr
+    else
+        return falseStr
+    endif
+endfunction
 

@@ -1,6 +1,7 @@
 Scriptname StorehouseMCMQuest extends SKI_ConfigBase  
 
 StorehouseQuest property shquest auto
+StorehouseQuest property shplayerref auto
 Actor property player auto
 int property healthPotionCap auto
 int property magickaPotionCap auto
@@ -8,6 +9,7 @@ int property staminaPotionCap auto
 int property poisonCap auto
 int property arrowCap auto
 int property lockpickCap auto
+bool property includeFood auto
 
 ; MCM option indices
 int iHealthPotion
@@ -16,7 +18,7 @@ int iStaminaPotion
 int iPoison
 int iArrow
 int iLockpick
-
+int iIncludeFood
 
 ; Event OnConfigInit()
 ; 	Pages = new string[5]
@@ -39,15 +41,16 @@ Event OnPageReset (string page)
     iArrow = AddSliderOption("Ammunition", arrowCap)
     iLockpick = AddSliderOption("Lockpicks", lockpickCap)
     AddEmptyOption()
+    iIncludeFood = AddToggleOption("Include food & drink in potion counts", includeFood)
     SetCursorPosition(1)
     AddHeaderOption("Debug Info")
     AddEmptyOption()
-    AddTextOption("Current health potions", shquest.healthPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current magicka potions", shquest.magickaPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current stamina potions", shquest.staminaPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current poisons", shquest.poisonCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current ranged ammo", shquest.ammoCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current lockpicks", shquest.lockpickCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current health potions", shplayerref.healthPotionCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current magicka potions", shplayerref.magickaPotionCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current stamina potions", shplayerref.staminaPotionCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current poisons", shplayerref.poisonCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current ranged ammo", shplayerref.ammoCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Current lockpicks", shplayerref.lockpickCount, OPTION_FLAG_DISABLED)
 EndEvent
 
 
@@ -96,6 +99,14 @@ Event OnOptionSliderAccept (int option, float value)
 EndEvent
 
 
+Event OnOptionSelect (int option)
+	if option == iIncludeFood
+		includeFood = !includeFood
+		SetToggleOptionValue(iIncludeFood, includeFood)
+    endif
+EndEvent
+
+
 Event OnOptionHighlight(int option)
 	if option == iHealthPotion
 		SetInfoText("The maximum number of health potions that the player may carry. Zero means there is no maximum.")
@@ -109,8 +120,9 @@ Event OnOptionHighlight(int option)
 		SetInfoText("The maximum number of lockpicks that the player may carry. Zero means there is no maximum.")
 	elseif option == iArrow
 		SetInfoText("The maximum number of arrows and bolts that the player may carry. Zero means there is no maximum.")
+	elseif option == iIncludeFood
+		SetInfoText("If true, foods or drinks that restore health, stamina or magicka will be counted as potions.")
 	endif
 EndEvent
 
 
-StorehouseQuest Property shq  Auto  
