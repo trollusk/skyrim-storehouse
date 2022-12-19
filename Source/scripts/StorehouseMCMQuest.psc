@@ -31,6 +31,7 @@ int iIncludeFood
 
 
 Event OnPageReset (string page)
+    shplayerref.CountItemsInInventory()
 	SetCursorFillMode(TOP_TO_BOTTOM)
     AddHeaderOption("Item Caps")
     AddEmptyOption()
@@ -45,12 +46,13 @@ Event OnPageReset (string page)
     SetCursorPosition(1)
     AddHeaderOption("Debug Info")
     AddEmptyOption()
-    AddTextOption("Current health potions", shplayerref.healthPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current magicka potions", shplayerref.magickaPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current stamina potions", shplayerref.staminaPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current poisons", shplayerref.poisonCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current ranged ammo", shplayerref.ammoCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Current lockpicks", shplayerref.lockpickCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Carried health potions", shplayerref.healthPotionCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Carried health potions", player.GetItemCount(shplayerref.healthPotionKeyword), OPTION_FLAG_DISABLED)
+    AddTextOption("Carried magicka potions", player.GetItemCount(shplayerref.magickaPotionKeyword), OPTION_FLAG_DISABLED)
+    AddTextOption("Carried stamina potions", player.GetItemCount(shplayerref.staminaPotionKeyword), OPTION_FLAG_DISABLED)
+    AddTextOption("Carried poisons", shplayerref.poisonCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Carried ranged ammo", shplayerref.ammoCount, OPTION_FLAG_DISABLED)
+    AddTextOption("Carried lockpicks", shplayerref.lockpickCount, OPTION_FLAG_DISABLED)
 EndEvent
 
 

@@ -55,6 +55,8 @@ When you acquire items that would put your carried item count over the limit, th
 
 When you rest at a campfire, your carried item totals are calculated for each category. Any excess items will be sent to the Bottomless Box. However if you are carrying fewer items than the limit, items will be automatically moved from the Bottomless Box back to your inventory to make up the shortfall.
 
+If you have ammo equipped, matching ammo will be preferentially pulled from the Bottomless Box. Similarly, potions and poisons that match what you are already carrying will be preferred.
+
 While still resting at the campfire, you can interact with the campfire a second time to bring up the menu from the Soulslike Bonfire Menu mod. This menu allows you to access the Bottomless Box directly, where you can store or retrieve any item, including adjusting which health potions, ammunition etc you are carrying.
 
 ### My other mods ###
