@@ -1,5 +1,4 @@
 *.code-workspace
-*.esp
 .vscode/*.json
 Scripts/*.pex
 *.zip

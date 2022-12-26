@@ -11,6 +11,7 @@ int property poisonCap auto
 int property arrowCap auto
 int property lockpickCap auto
 bool property includeFood auto
+bool property freeStorehouseContents auto
 
 ; MCM option indices
 int iHealthPotion
@@ -21,6 +22,7 @@ int iPoison
 int iArrow
 int iLockpick
 int iIncludeFood
+int iFreeContents
 
 ; Event OnConfigInit()
 ; 	Pages = new string[5]
@@ -45,6 +47,7 @@ Event OnPageReset (string page)
     iArrow = AddSliderOption("Ammunition", arrowCap)
     iLockpick = AddSliderOption("Lockpicks", lockpickCap)
     AddEmptyOption()
+    iFreeContents = AddToggleOption("Storehouse can be used for general storage", freeStorehouseContents)
     iIncludeFood = AddToggleOption("Include food & drink in potion counts", includeFood)
     SetCursorPosition(1)
     AddHeaderOption("Debug Info")
@@ -113,6 +116,9 @@ Event OnOptionSelect (int option)
 	if option == iIncludeFood
 		includeFood = !includeFood
 		SetToggleOptionValue(iIncludeFood, includeFood)
+    elseif option == iFreeContents
+        freeStorehouseContents = !freeStorehouseContents
+        SetToggleOptionValue(iFreeContents, freeStorehouseContents)
     endif
 EndEvent
 
@@ -134,6 +140,8 @@ Event OnOptionHighlight(int option)
 		SetInfoText("The maximum number of arrows and bolts that the player may carry. Zero means there is no maximum.")
 	elseif option == iIncludeFood
 		SetInfoText("If true, foods or drinks that restore health, stamina or magicka will be counted as potions.")
+	elseif option == iFreeContents
+		SetInfoText("If true, you can store any item in the storehouse container. If false, the container will reject any item that is not a potion, lockpick or ammunition.")
 	endif
 EndEvent
 
