@@ -6,6 +6,7 @@ Actor property player auto
 int property healthPotionCap auto
 int property magickaPotionCap auto
 int property staminaPotionCap auto
+int property utilityPotionCap auto
 int property poisonCap auto
 int property arrowCap auto
 int property lockpickCap auto
@@ -15,6 +16,7 @@ bool property includeFood auto
 int iHealthPotion
 int iMagickaPotion
 int iStaminaPotion
+int iUtilityPotion
 int iPoison
 int iArrow
 int iLockpick
@@ -38,6 +40,7 @@ Event OnPageReset (string page)
     iHealthPotion = AddSliderOption("Health potions", healthPotionCap)
     iMagickaPotion = AddSliderOption("Magicka potions", magickaPotionCap)
     iStaminaPotion = AddSliderOption("Stamina potions", staminaPotionCap)
+    iUtilityPotion = AddSliderOption("Utility potions", utilityPotionCap)
     iPoison = AddSliderOption("Poisons", poisonCap)
     iArrow = AddSliderOption("Ammunition", arrowCap)
     iLockpick = AddSliderOption("Lockpicks", lockpickCap)
@@ -47,9 +50,9 @@ Event OnPageReset (string page)
     AddHeaderOption("Debug Info")
     AddEmptyOption()
     AddTextOption("Carried health potions", shplayerref.healthPotionCount, OPTION_FLAG_DISABLED)
-    AddTextOption("Carried health potions", player.GetItemCount(shplayerref.healthPotionKeyword), OPTION_FLAG_DISABLED)
     AddTextOption("Carried magicka potions", player.GetItemCount(shplayerref.magickaPotionKeyword), OPTION_FLAG_DISABLED)
     AddTextOption("Carried stamina potions", player.GetItemCount(shplayerref.staminaPotionKeyword), OPTION_FLAG_DISABLED)
+    AddTextOption("Carried utility potions", player.GetItemCount(shplayerref.utilityPotionKeyword), OPTION_FLAG_DISABLED)
     AddTextOption("Carried poisons", shplayerref.poisonCount, OPTION_FLAG_DISABLED)
     AddTextOption("Carried ranged ammo", shplayerref.ammoCount, OPTION_FLAG_DISABLED)
     AddTextOption("Carried lockpicks", shplayerref.lockpickCount, OPTION_FLAG_DISABLED)
@@ -66,6 +69,8 @@ Event OnOptionSliderOpen (int option)
 		SetSliderDialogStartValue(magickaPotionCap)
 	elseif (option == iStaminaPotion)
 		SetSliderDialogStartValue(staminaPotionCap)
+	elseif (option == iUtilityPotion)
+		SetSliderDialogStartValue(utilityPotionCap)
 	elseif (option == iPoison)
 		SetSliderDialogStartValue(poisonCap)
 	elseif (option == iArrow)
@@ -87,6 +92,9 @@ Event OnOptionSliderAccept (int option, float value)
 	elseif (option == iStaminaPotion)
         staminaPotionCap = value as int
 		SetSliderOptionValue(iStaminaPotion, staminaPotionCap)
+	elseif (option == iUtilityPotion)
+        utilityPotionCap = value as int
+		SetSliderOptionValue(iUtilityPotion, utilityPotionCap)
 	elseif (option == iPoison)
         poisonCap = value as int
 		SetSliderOptionValue(iPoison, poisonCap)
@@ -116,6 +124,8 @@ Event OnOptionHighlight(int option)
 		SetInfoText("The maximum number of magicka potions that the player may carry. Zero means there is no maximum.")
 	elseif option == iStaminaPotion
 		SetInfoText("The maximum number of stamina potions that the player may carry. Zero means there is no maximum.")
+	elseif option == iUtilityPotion
+		SetInfoText("The maximum number of utility potions that the player may carry. A utility potion is any potion that does NOT restore health, magicka or stamina. Zero means there is no maximum.")
 	elseif option == iPoison
 		SetInfoText("The maximum number of poisons that the player may carry. Zero means there is no maximum.")
 	elseif option == iLockpick

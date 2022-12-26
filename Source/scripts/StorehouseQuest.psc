@@ -19,6 +19,7 @@ FormList Property StaminaPotionFormList  Auto
 int property healthPotionCount auto
 int property staminaPotionCount auto
 int property magickaPotionCount auto
+int property utilityPotionCount auto
 int property poisonCount auto
 int property ammoCount auto
 int property lockpickCount auto
@@ -28,6 +29,7 @@ int ammoStored
 int healthPotionStored 
 int magickaPotionStored 
 int staminaPotionStored 
+int utilityPotionStored 
 int poisonStored 
 
 Keyword property healthKeyword auto
@@ -36,6 +38,7 @@ Keyword property magickaKeyword auto
 Keyword property healthPotionKeyword auto
 Keyword property staminaPotionKeyword auto
 Keyword property magickaPotionKeyword auto
+Keyword property utilityPotionKeyword auto
 Keyword property poisonKeyword auto
 Keyword property ammoKeyword auto
 
@@ -68,9 +71,8 @@ Function InitStorehouse()
         if pot.IsPoison()
             ;
         elseif !pot.IsFood() || mcm.includeFood
-            IsHealthPotion(pot)        ; called for side effect of adding keyword
-            IsMagickaPotion(pot)
-            IsStaminaPotion(pot)
+            PO3_SKSEFunctions.RemoveKeywordOnForm(pot, utilityPotionKeyword)
+            AddKeywordsToPotion(pot)
         endif
         index += 1
     endwhile
@@ -98,9 +100,8 @@ Function InitStorehouse()
     while index < player.GetNumItems()
         Form item = player.GetNthForm(index)
         if item as Potion && PO3_SKSEFunctions.IsGeneratedForm(item)
-            IsHealthPotion(item)        ; called for side effect of adding to formlist
-            IsMagickaPotion(item)
-            IsStaminaPotion(item)
+            PO3_SKSEFunctions.RemoveKeywordOnForm(item, utilityPotionKeyword)
+            AddKeywordsToPotion(item as Potion)
         endif
         index += 1
     endwhile
@@ -110,9 +111,8 @@ Function InitStorehouse()
     while index < BottomlessBox.GetNumItems()
         Form item = BottomlessBox.GetNthForm(index)
         if item as Potion && PO3_SKSEFunctions.IsGeneratedForm(item)
-            IsHealthPotion(item)        ; called for side effect of adding to formlist
-            IsMagickaPotion(item)
-            IsStaminaPotion(item)
+            PO3_SKSEFunctions.RemoveKeywordOnForm(item, utilityPotionKeyword)
+            AddKeywordsToPotion(item as Potion)
         endif
         index += 1
     endwhile
@@ -124,9 +124,10 @@ int IT_ALL = 0
 int IT_HEALTH_POTION = 1
 int IT_MAGICKA_POTION = 2
 int IT_STAMINA_POTION = 3
-int IT_POISON = 4
-int IT_AMMO = 5
-int IT_LOCKPICK = 6
+int IT_UTILITY_POTION = 4
+int IT_POISON = 5
+int IT_AMMO = 6
+int IT_LOCKPICK = 7
 
 
 int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
@@ -150,6 +151,9 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
         if itemType == IT_STAMINA_POTION || itemType == IT_ALL
             staminaPotionStored = BottomlessBox.GetItemCount(staminaPotionKeyword)
         endif
+        if itemType == IT_UTILITY_POTION || itemType == IT_ALL
+            utilityPotionStored = BottomlessBox.GetItemCount(utilityPotionKeyword)
+        endif
         if itemType == IT_POISON || itemType == IT_ALL
             poisonStored = BottomlessBox.GetItemCount(poisonKeyword)
         endif
@@ -168,6 +172,9 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
         endif
         if itemType == IT_STAMINA_POTION || itemType == IT_ALL
             staminaPotionCount = player.GetItemCount(staminaPotionKeyword)
+        endif
+        if itemType == IT_UTILITY_POTION || itemType == IT_ALL
+            utilityPotionCount = player.GetItemCount(utilityPotionKeyword)
         endif
         if itemType == IT_POISON || itemType == IT_ALL
             poisonCount = player.GetItemCount(poisonKeyword)
@@ -210,6 +217,8 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
             return magickaPotionStored
         elseif itemType == IT_STAMINA_POTION
             return staminaPotionStored
+        elseif itemType == IT_UTILITY_POTION
+            return utilityPotionStored
         elseif itemType == IT_POISON
             return poisonStored
         elseif itemType == IT_AMMO
@@ -228,6 +237,8 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
             return magickaPotionCount
         elseif itemType == IT_STAMINA_POTION
             return staminaPotionCount
+        elseif itemType == IT_UTILITY_POTION
+            return utilityPotionCount
         elseif itemType == IT_POISON
             return poisonCount
         elseif itemType == IT_AMMO
@@ -294,11 +305,16 @@ Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference
         toStore = Max(0, staminaPotionCount - mcm.staminaPotionCap)
         itemName = "stamina potion"
         itemNamePlural = "stamina potions"
+    elseif mcm.utilityPotionCap > 0 && IsUtilityPotion(base)
+        utilityPotionCount = CountItemsInInventory(IT_UTILITY_POTION)
+        toStore = Max(0, utilityPotionCount - mcm.utilityPotionCap)
+        itemName = "utility potion"
+        itemNamePlural = "utility potions"
     endif
 
     if Min(toStore, count) > 0
-        debug.Notification("Sent " + Min(toStore, count) + " " + strif(Min(toStore, count)==1, itemName, itemNamePlural) + " to storehouse...")
         player.RemoveItem(base, Min(toStore, count), true, BottomlessBox)
+        debug.Notification("Sent " + Min(toStore, count) + " " + strif(Min(toStore, count)==1, itemName, itemNamePlural) + " to storehouse...")
     endif
 EndEvent
 
@@ -364,38 +380,6 @@ function SyncBottomlessBox()
         endif
     endif
 
-    ; if mcm.poisonCap > 0 
-    ;     if poisonCount > mcm.poisonCap
-    ;         toMove = poisonCount - mcm.poisonCap
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < player.GetNumItems() && toMove > 0
-    ;             Form item = player.GetNthForm(index)
-    ;             if item as Potion && (item as Potion).IsPoison()
-    ;                 int count = player.GetItemCount(item)
-    ;                 player.RemoveItem(item, Min(count, toMove), false, BottomlessBox)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Sent " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"poison", "poisons") + " to the storehouse.")
-    ;     elseif poisonCount < mcm.poisonCap && poisonStored > 0
-    ;         toMove = Min(poisonStored, mcm.poisonCap - poisonCount)
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < BottomlessBox.GetNumItems() && toMove > 0
-    ;             Form item = BottomlessBox.GetNthForm(index)
-    ;             if item as Potion && (item as Potion).IsPoison()
-    ;                 int count = BottomlessBox.GetItemCount(item)
-    ;                 BottomlessBox.RemoveItem(item, Min(count, toMove), false, player)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"poison", "poisons") + " from the storehouse.")
-    ;     endif
-    ; endif
-
     if mcm.arrowCap > 0 
         SyncAmmo()
     endif
@@ -416,101 +400,9 @@ function SyncBottomlessBox()
         SyncPotions(staminaPotionKeyword, staminaPotionCount, staminaPotionStored, mcm.staminaPotionCap)
     endif
 
-    ; if mcm.healthPotionCap > 0 
-    ;     if healthPotionCount > mcm.healthPotionCap
-    ;         toMove = healthPotionCount - mcm.healthPotionCap
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < player.GetNumItems() && toMove > 0
-    ;             Form item = player.GetNthForm(index)
-    ;             if IsHealthPotion(item)
-    ;                 int count = player.GetItemCount(item)
-    ;                 player.RemoveItem(item, Min(count, toMove), false, BottomlessBox)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Sent " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"health potion", "health potions") + " to the storehouse.")
-    ;     elseif healthPotionCount < mcm.healthPotionCap && healthPotionStored > 0
-    ;         toMove = Min(healthPotionStored, mcm.healthPotionCap - healthPotionCount)
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < BottomlessBox.GetNumItems() && toMove > 0
-    ;             Form item = BottomlessBox.GetNthForm(index)
-    ;             if IsHealthPotion(item)
-    ;                 int count = BottomlessBox.GetItemCount(item)
-    ;                 BottomlessBox.RemoveItem(item, Min(count, toMove), false, player)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"health potion", "health potions") + " from the storehouse.")
-    ;     endif
-    ; endif
-
-    ; if mcm.magickaPotionCap > 0 
-    ;     if magickaPotionCount > mcm.magickaPotionCap
-    ;         toMove = magickaPotionCount - mcm.magickaPotionCap
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < player.GetNumItems() && toMove > 0
-    ;             Form item = player.GetNthForm(index)
-    ;             if IsMagickaPotion(item)
-    ;                 int count = player.GetItemCount(item)
-    ;                 player.RemoveItem(item, Min(count, toMove), false, BottomlessBox)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Sent " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"magicka potion", "magicka potions") + " to the storehouse.")
-    ;     elseif magickaPotionCount < mcm.magickaPotionCap && magickaPotionStored > 0
-    ;         toMove = Min(magickaPotionStored, mcm.magickaPotionCap - magickaPotionCount)
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < BottomlessBox.GetNumItems() && toMove > 0
-    ;             Form item = BottomlessBox.GetNthForm(index)
-    ;             if IsMagickaPotion(item)
-    ;                 int count = BottomlessBox.GetItemCount(item)
-    ;                 BottomlessBox.RemoveItem(item, Min(count, toMove), false, player)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"magicka potion", "magicka potions") + " from the storehouse.")
-    ;     endif
-    ; endif
-
-    ; if mcm.staminaPotionCap > 0
-    ;     if staminaPotionCount > mcm.staminaPotionCap 
-    ;         toMove = staminaPotionCount - mcm.staminaPotionCap
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < player.GetNumItems() && toMove > 0
-    ;             Form item = player.GetNthForm(index)
-    ;             if IsStaminaPotion(item)
-    ;                 int count = player.GetItemCount(item)
-    ;                 player.RemoveItem(item, Min(count, toMove), false, BottomlessBox)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Sent " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"stamina potion", "stamina potions") + " to the storehouse.")
-    ;     elseif staminaPotionCount < mcm.staminaPotionCap && staminaPotionStored > 0
-    ;         toMove = Min(staminaPotionStored, mcm.staminaPotionCap - staminaPotionCount)
-    ;         index = 0
-    ;         int toMoveAim = toMove
-    ;         while index < BottomlessBox.GetNumItems() && toMove > 0
-    ;             Form item = BottomlessBox.GetNthForm(index)
-    ;             if IsStaminaPotion(item)
-    ;                 int count = BottomlessBox.GetItemCount(item)
-    ;                 BottomlessBox.RemoveItem(item, Min(count, toMove), false, player)
-    ;                 toMove -= Min(count, toMove)
-    ;             endif
-    ;             index += 1
-    ;         endwhile
-    ;         debug.Notification("Fetched " + (toMoveAim - toMove) + " " + strif((toMoveAim - toMove)==1,"stamina potion", "stamina potions") + " from the storehouse.")
-    ;     endif
-    ; endif
+    if mcm.utilityPotionCap > 0
+        SyncPotions(utilityPotionKeyword, utilityPotionCount, utilityPotionStored, mcm.utilityPotionCap)
+    endif
 endfunction
 
 
@@ -529,6 +421,9 @@ Function SyncPotions(Keyword kwd, int carriedCount, int stored, int cap)
     elseif kwd == staminaPotionKeyword
         potionSingular = " stamina potion"
         potionPlural = " stamina potions"
+    elseif kwd == utilityPotionKeyword
+        potionSingular = " utility potion"
+        potionPlural = " utility potions"
     elseif kwd == poisonKeyword
         potionSingular = " poison"
         potionPlural = " poisons"
@@ -543,7 +438,7 @@ Function SyncPotions(Keyword kwd, int carriedCount, int stored, int cap)
                 Potion item = player.GetNthForm(index) as Potion
                 if !item
                     ;
-                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item))
+                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item)) || (kwd==utilityPotionKeyword && IsUtilityPotion(item))
                     int count = player.GetItemCount(item)
                     player.RemoveItem(item, Min(count, toMove), true, BottomlessBox)
                     toMove -= Min(count, toMove)
@@ -560,7 +455,7 @@ Function SyncPotions(Keyword kwd, int carriedCount, int stored, int cap)
                 Potion item = BottomlessBox.GetNthForm(index) as Potion
                 if !item
                     ;
-                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item))
+                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item)) || (kwd==utilityPotionKeyword && IsUtilityPotion(item))
                     if player.GetItemCount(item) > 0        ; only want potions that match what the player already has
                         int count = BottomlessBox.GetItemCount(item)
                         BottomlessBox.RemoveItem(item, Min(count, toMove), true, player)
@@ -575,7 +470,7 @@ Function SyncPotions(Keyword kwd, int carriedCount, int stored, int cap)
                 Potion item = BottomlessBox.GetNthForm(index) as Potion
                 if !item
                     ;
-                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item))
+                elseif (kwd==poisonKeyword && item.IsPoison()) || (kwd==healthPotionKeyword && IsHealthPotion(item)) || (kwd==magickaPotionKeyword && IsMagickaPotion(item)) || (kwd==staminaPotionKeyword && IsStaminaPotion(item)) || (kwd==utilityPotionKeyword && IsUtilityPotion(item))
                     if player.GetItemCount(item) == 0        ; we aren't already carrying this type of potion
                         int count = BottomlessBox.GetItemCount(item)
                         BottomlessBox.RemoveItem(item, Min(count, toMove), true, player)
@@ -671,43 +566,86 @@ Function SyncAmmo()
 EndFunction
 
 
-bool Function IsPotionType(Form base, Keyword effectKeyword)
+bool Function IsPotionType(Form base, Keyword magicEffectKeyword)
     Keyword kwd
-    if effectKeyword == healthKeyword
+    Potion pot = base as Potion
+
+    if magicEffectKeyword == healthKeyword
         kwd = healthPotionKeyword
-    elseif effectKeyword == magickaKeyword
+    elseif magicEffectKeyword == magickaKeyword
         kwd = magickaPotionKeyword
-    elseif effectKeyword == staminaKeyword 
+    elseif magicEffectKeyword == staminaKeyword 
         kwd = staminaPotionKeyword
-    else
-        return false
+    elseif magicEffectKeyword == utilityPotionKeyword 
+        kwd = utilityPotionKeyword
     endif
-    if base.HasKeyword(kwd)
+
+    if !pot
+        return false
+    elseif pot.IsPoison()
+        return false
+    elseif pot.HasKeyword(kwd)
         return true
-    elseif base as Potion
+    else
         ; could be a crafted potion
-        Potion pot = base as Potion
         MagicEffect[] mgefs = pot.GetMagicEffects()
         if !pot.IsFood() || mcm.includeFood
             int index = 0
+            bool utilityPot = true
             while index < mgefs.Length
-                if mgefs[index].HasKeyword(effectKeyword)
+                if mgefs[index].HasKeyword(magicEffectKeyword)
                     ;flist.AddForm(base)
-                    if effectKeyword == healthKeyword
+                    if magicEffectKeyword == healthKeyword
                         PO3_SKSEFunctions.AddKeywordToForm(base, healthPotionKeyword)
-                    elseif effectKeyword == magickaKeyword
+                    elseif magicEffectKeyword == magickaKeyword
                         PO3_SKSEFunctions.AddKeywordToForm(base, magickaPotionKeyword)
-                    elseif effectKeyword == staminaKeyword 
+                    elseif magicEffectKeyword == staminaKeyword 
                         PO3_SKSEFunctions.AddKeywordToForm(base, staminaPotionKeyword)
                     endif
                     return true
                 endif
+                if mgefs[index].HasKeyword(healthKeyword) || mgefs[index].HasKeyword(magickaKeyword) || mgefs[index].HasKeyword(staminaKeyword)
+                    utilityPot = false
+                    index = 999    ; break out of while loop
+                endif
                 index += 1
             endwhile
+            if utilityPot
+                PO3_SKSEFunctions.AddKeywordToForm(base, utilityPotionKeyword)
+                if magicEffectKeyword == utilityPotionKeyword
+                    return true
+                endif
+            endif
         endif
         return false
-    else
-        return false
+    endif
+EndFunction
+
+
+Function AddKeywordsToPotion(Potion pot)
+    MagicEffect[] mgefs = pot.GetMagicEffects()
+    int index = 0
+    bool utilityPot = true
+
+    if pot.IsPoison()
+        return
+    elseif !pot.IsFood() || mcm.includeFood
+        while index < mgefs.Length
+            if mgefs[index].HasKeyword(healthKeyword)
+                PO3_SKSEFunctions.AddKeywordToForm(pot, healthPotionKeyword)
+                utilityPot = false
+            elseif mgefs[index].HasKeyword(magickaKeyword)
+                PO3_SKSEFunctions.AddKeywordToForm(pot, magickaPotionKeyword)
+                utilityPot = false
+            elseif mgefs[index].HasKeyword(staminaKeyword)
+                PO3_SKSEFunctions.AddKeywordToForm(pot, staminaPotionKeyword)
+                utilityPot = false
+            endif
+            index += 1
+        endwhile
+        if utilityPot
+            PO3_SKSEFunctions.AddKeywordToForm(pot, utilityPotionKeyword)
+        endif
     endif
 EndFunction
 
@@ -765,6 +703,10 @@ EndFunction
 
 bool Function IsStaminaPotion(Form base)
     return IsPotionType(base, staminaKeyword)
+EndFunction
+
+bool Function IsUtilityPotion(Form base)
+    return IsPotionType(base, utilityPotionKeyword)
 EndFunction
 
 
