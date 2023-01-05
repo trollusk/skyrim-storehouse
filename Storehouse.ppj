@@ -8,7 +8,7 @@
     Final="false">
     <Variables>
         <Variable Name="ModName" Value="Storehouse" />
-        <Variable Name="drive" Value="f:" />
+        <Variable Name="drive" Value="d:" />
         <!-- <Variable Name="modpath" Value="c:\wabbajack\streamlinedskyrim\mods" /> -->
         <!-- <Variable Name="gamepath" Value="C:\Steam\steamapps\common\Skyrim Special Edition" /> -->
         <Variable Name="modpath" Value="\wabbajack\arisen\mods" />
@@ -34,6 +34,7 @@
             <Include>*.esp</Include>
             <Include NoRecurse="true">*.bsa</Include>
             <Match In="source\scripts">*.psc</Match>
+            <Match In="seq">*.seq</Match>
             <Match In="scripts">*.pex</Match>
             <!-- <Match In="interface">*.*</Match> -->
             <!-- <Match In="meshes">*.*</Match> -->

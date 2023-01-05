@@ -10,6 +10,7 @@ ObjectReference Property BottomlessBox  Auto
 ;FormList Property SBMEstusFlaskFormList  Auto   ; Soulslike Bonfire Menu list of "estus flask" potions
 ObjectReference property DefaultStorehouseContainer auto    ; alternative to SBM container, not currently used
 MiscObject property lockpickBase auto
+Light property torchBase auto
 
 int TYPE_POTION = 46
 int TYPE_AMMO = 42
@@ -25,8 +26,10 @@ int property utilityPotionCount auto
 int property poisonCount auto
 int property ammoCount auto
 int property lockpickCount auto
+int property torchCount auto
 
 int lockpickStored
+int torchStored
 int ammoStored 
 int healthPotionStored 
 int magickaPotionStored 
@@ -34,7 +37,7 @@ int staminaPotionStored
 int utilityPotionStored 
 int poisonStored 
 
-ObjectReference StorehouseContainer
+ObjectReference property StorehouseContainer auto
 
 Keyword property healthKeyword auto
 Keyword property staminaKeyword auto
@@ -55,6 +58,9 @@ Keyword Property safeLocationKeyword  Auto      ; other safe location eg Dark Br
 Event OnInit()
     ;StorehouseContainer = BottomlessBox
     StorehouseContainer = DefaultStorehouseContainer
+    if mcm.givePower
+        player.AddSpell(mcm.storehousePower, false)
+    endif
     InitStorehouse()
 EndEvent
 
@@ -63,6 +69,9 @@ Event OnPlayerLoadGame()
     ;RemoveAllInventoryEventFilters()
     ;StorehouseContainer = BottomlessBox
     StorehouseContainer = DefaultStorehouseContainer
+    if mcm.givePower
+        player.AddSpell(mcm.storehousePower, false)
+    endif
     InitStorehouse()
 EndEvent
 
@@ -139,6 +148,7 @@ int IT_UTILITY_POTION = 4
 int IT_POISON = 5
 int IT_AMMO = 6
 int IT_LOCKPICK = 7
+int IT_TORCH = 8
 
 
 int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
@@ -148,6 +158,9 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
     if storehouse
         if itemType == IT_LOCKPICK || itemType == IT_ALL
             lockpickStored = StorehouseContainer.GetItemCount(lockpickBase)
+        endif
+        if itemType == IT_TORCH || itemType == IT_ALL
+            torchStored = StorehouseContainer.GetItemCount(torchBase)
         endif
         if itemType == IT_AMMO || itemType == IT_ALL
             ammoStored = StorehouseContainer.GetItemCount(ammoKeyword)
@@ -171,6 +184,9 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
     else
         if itemType == IT_LOCKPICK || itemType == IT_ALL
             lockpickCount = player.GetItemCount(lockpickBase)
+        endif
+        if itemType == IT_TORCH || itemType == IT_ALL
+            torchCount = player.GetItemCount(torchBase)
         endif
         if itemType == IT_AMMO || itemType == IT_ALL
             ammoCount = player.GetItemCount(ammoKeyword)
@@ -236,6 +252,8 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
             return ammoStored
         elseif itemType == IT_LOCKPICK
             return lockpickStored
+        elseif itemType == IT_TORCH
+            return torchStored
         Else
             return 0
         endif
@@ -256,6 +274,8 @@ int Function CountItemsInInventory(int itemType = 0, bool storehouse = false)
             return ammoCount
         elseif itemType == IT_LOCKPICK
             return lockpickCount
+        elseif itemType == IT_TORCH
+            return torchCount
         Else
             return 0
         endif
@@ -272,16 +292,19 @@ Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference
 		return
 	endif
 
-    consoleutil.PrintMessage("ItemAdded ref name:" + itemref.GetDisplayName() + ", base:" + base + " / " + PO3_SKSEFunctions.GetFormEditorID(base) + " / " + base.GetName())
-    consoleutil.PrintMessage("  IsHealthPotion:" + IsHealthPotion(base) + ", formlist:" + HealthPotionFormList.Find(base))
-    ConsoleUtil.PrintMessage("  health potions now in inventory (not counting this): " + CountItemsInInventory(IT_HEALTH_POTION) + ", count of this item in inventory:" + player.GetItemCount(base))
-    ConsoleUtil.PrintMessage("  keyword[0]: " + base.GetNthKeyword(0) + ", keyword[1]: " + base.GetNthKeyword(1))
+    ;consoleutil.PrintMessage("ItemAdded ref name:" + itemref.GetDisplayName() + ", base:" + base + " / " + PO3_SKSEFunctions.GetFormEditorID(base) + " / " + base.GetName())
+    ;consoleutil.PrintMessage("  GetOwner:" + GetOwner(itemref, source) + ", parent cell:" + itemref.GetParentCell() + ", actor owner:" + itemref.GetActorOwner() + ", faction owner:" + itemref.GetFactionOwner())
+    
     if mcm.lockpickCap > 0 && base == lockpickBase
         itemName = "lockpick"
         itemNamePlural = "lockpicks"
         lockpickCount = player.GetItemCount(lockpickBase)
         toStore = Max(0, lockpickCount - mcm.lockpickCap)
-        ;consoleutil.PrintMessage("Acquired " + count + " lockpicks (count now " + lockpickCount + ", cap " + mcm.lockpickCap + ")")
+    elseif mcm.torchCap > 0 && base == torchBase
+        itemName = "torch"
+        itemNamePlural = "torches"
+        torchCount = player.GetItemCount(torchBase)
+        toStore = Max(0, torchCount - mcm.torchCap)
     elseif mcm.poisonCap > 0 && (base as Potion).IsPoison()
         itemName = "poison"
         itemNamePlural = "poisons"
@@ -303,8 +326,8 @@ Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference
         itemName = "health potion"
         itemNamePlural = "health potions"
         healthPotionCount = CountItemsInInventory(IT_HEALTH_POTION)
-        consoleutil.PrintMessage("ref name:" + itemref.GetDisplayName() + ", base:" + base + " / " + PO3_SKSEFunctions.GetFormEditorID(base) + " / " + base.GetName())
-        consoleutil.PrintMessage("base generated:" + PO3_SKSEFunctions.IsGeneratedForm(base) + "IsHealthPotion:" + IsHealthPotion(base) + ", formlist:" + HealthPotionFormList.Find(base))
+        ;consoleutil.PrintMessage("ref name:" + itemref.GetDisplayName() + ", base:" + base + " / " + PO3_SKSEFunctions.GetFormEditorID(base) + " / " + base.GetName())
+        ;consoleutil.PrintMessage("base generated:" + PO3_SKSEFunctions.IsGeneratedForm(base) + "IsHealthPotion:" + IsHealthPotion(base) + ", formlist:" + HealthPotionFormList.Find(base))
         toStore = Max(0, healthPotionCount - mcm.healthPotionCap)
     elseif mcm.magickaPotionCap > 0 && IsMagickaPotion(base)
         itemName = "magicka potion"
@@ -328,6 +351,7 @@ Event OnItemAdded(Form base, int count, ObjectReference itemref, ObjectReference
         debug.Notification("Sent " + Min(toStore, count) + " " + strif(Min(toStore, count)==1, itemName, itemNamePlural) + " to storehouse...")
     endif
 EndEvent
+
 
 
 Event OnLocationChange (Location oldloc, Location newloc)
@@ -368,6 +392,19 @@ function SyncStorehouse()
             StorehouseContainer.RemoveItem(lockpickBase, toMove, true, player)
             debug.Notification("Fetched " + toMove + " " + strif(toMove==1,"lockpick", "lockpicks") + " from the storehouse.")
             lockpickCount -= toMove
+        endif
+    endif
+
+    if mcm.torchCap > 0 
+        if torchCount > mcm.torchCap
+            toMove = torchCount - mcm.torchCap
+            player.RemoveItem(torchBase, toMove, true, StorehouseContainer)
+            debug.Notification("Sent " + toMove + " " + strif(toMove==1,"torch", "torches") + " to the storehouse.")
+        elseif torchCount < mcm.torchCap && torchStored > 0
+            toMove = Min(torchStored, mcm.torchCap - torchCount)
+            StorehouseContainer.RemoveItem(torchBase, toMove, true, player)
+            debug.Notification("Fetched " + toMove + " " + strif(toMove==1,"torch", "torches") + " from the storehouse.")
+            torchCount -= toMove
         endif
     endif
 
@@ -724,6 +761,34 @@ string function strif(bool test, string trueStr, string falseStr)
         return trueStr
     else
         return falseStr
+    endif
+endfunction
+
+
+; Try to get an item's direct or indirect owner (if such an owner is found, the item is stolen, or
+; will be stolen if the player picks it up)
+; problem - if player drops an item, then picks it up again, in a "faction-owned" cell, this function
+; will think the item must be "faction-owned" as well
+Form function GetOwner(ObjectReference item, ObjectReference sourceContainer = none)
+    if item.GetActorOwner()
+        return item.GetActorOwner()
+    elseif item.GetFactionOwner()
+        return item.GetFactionOwner()
+    elseif sourceContainer && sourceContainer.GetActorOwner()
+        return sourceContainer.GetActorOwner()
+    elseif sourceContainer && sourceContainer.GetFactionOwner()
+        return sourceContainer.GetFactionOwner()
+    else
+        Cell myCell = player.GetParentCell()
+        if !myCell
+            return none
+        elseif myCell.GetActorOwner()
+            return myCell.GetActorOwner()
+        elseif myCell.GetFactionOwner()
+            return myCell.GetFactionOwner()
+        else
+            return none
+        endif
     endif
 endfunction
 

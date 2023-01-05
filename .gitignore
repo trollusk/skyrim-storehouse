@@ -1,4 +1,6 @@
 *.code-workspace
 .vscode/*.json
 Scripts/*.pex
+backup/*
 *.zip
+*.ppj

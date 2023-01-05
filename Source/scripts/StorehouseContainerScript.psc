@@ -12,7 +12,7 @@ Event OnItemAdded(Form base, int count, ObjectReference itemRef, ObjectReference
             elseif base as Ammo
             elseif base == lockpickBase
             else    
-                debug.Notification("The storehouse may only contain potions, poisons, lockpicks and ammunition.")
+                debug.Notification("The storehouse may only contain potions, poisons, torches, lockpicks and ammunition.")
                 self.RemoveItem(base, count, true, player)
             endif
         endif
